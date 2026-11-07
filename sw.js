@@ -1,11 +1,12 @@
 // Offline support. Serves from cache, then refreshes the cache in the background,
 // so a new deploy shows up on the next visit. Bump VERSION to force a clean cache.
-const VERSION = 'aluu-v1';
+const VERSION = 'aluu-v3';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
+  './audio.js',
   './words.js',
   './manifest.webmanifest',
   './icons/icon.svg',
@@ -35,6 +36,8 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== location.origin) return;
+  // Let the browser handle audio clips itself: media uses range requests, which this simple cache can't answer.
+  if (new URL(req.url).pathname.includes('/audio/')) return;
   e.respondWith(
     caches.open(VERSION).then(async (cache) => {
       const hit = await cache.match(req, { ignoreSearch: true });

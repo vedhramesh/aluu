@@ -306,15 +306,38 @@
     },
   };
 
+  // Built-in recordings (audio.js) play first; the device voice is only a fallback.
+  const CLIPS = window.AUDIO || {};
+  const HAS_CLIPS = Object.keys(CLIPS).length > 0;
+  const player = new Audio();
+  player.preload = 'auto';
+  let playerBtn = null;
+  const clipDone = () => { if (playerBtn) playerBtn.classList.remove('speaking'); playerBtn = null; };
+  player.addEventListener('ended', clipDone);
+  player.addEventListener('error', clipDone);
+  player.addEventListener('pause', clipDone);
   function say(text, btn, staff, rate) {
     if (staff) animateStaff(staff);
+    const clip = CLIPS[String(text).trim()];
+    if (clip) {
+      if (TTS.ok && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
+      player.pause();
+      player.src = `audio/${clip}.mp3`;
+      player.playbackRate = Math.min(1.4, Math.max(0.5, rate || +S.settings.rate || 0.9));
+      player.preservesPitch = true;
+      playerBtn = btn || null;
+      if (btn) btn.classList.add('speaking');
+      const pr = player.play();
+      if (pr && pr.catch) pr.catch(clipDone);
+      return;
+    }
     TTS.speak(text, {
       rate,
       onstart: () => btn && btn.classList.add('speaking'),
       onend: () => btn && btn.classList.remove('speaking'),
     });
   }
-  const noVoice = () => TTS.loaded && !TTS.voices.length;
+  const noVoice = () => !HAS_CLIPS && TTS.loaded && !TTS.voices.length;
 
   // ---------------------------------------------------------------- toast
   let toastT;
@@ -912,17 +935,18 @@
 
       <section class="group" aria-labelledby="s-audio">
         <h2 id="s-audio">Audio</h2>
-        ${TTS.voices.length ? '' : `<p>${TTS.ok ? 'No Greenlandic voice on this device. No phone or browser ships with one, but there’s a free voice you can install:' : "This browser can’t do speech. Try Chrome, Edge or Safari."}</p>
+        ${HAS_CLIPS ? '<p>Audio is built in: every word and example was recorded with Martha, the Greenlandic voice made by Oqaasileriffik, Greenland’s language secretariat. Nothing to install.</p>' : ''}
+        ${HAS_CLIPS || TTS.voices.length ? '' : `<p>${TTS.ok ? 'No Greenlandic voice on this device. No phone or browser ships with one, but there’s a free voice you can install:' : "This browser can’t do speech. Try Chrome, Edge or Safari."}</p>
         ${TTS.ok ? `<ul class="voice-help">
-          <li>Get <b>Martha</b>, the free Greenlandic voice from Greenland’s language secretariat, at atuffat.gl (search “Martha Greenlandic voice”). There are versions for Windows, Mac, iPhone and Android.</li>
+          <li>Get <b>Martha</b>, the free Greenlandic voice from Greenland’s language secretariat: <a href="https://oqaasileriffik.gl/en/langtech/martha/" target="_blank" rel="noopener">oqaasileriffik.gl/en/langtech/martha</a>. There are versions for Windows, Mac, iPhone and Android, plus install guides.</li>
           <li>After installing it, fully quit and reopen your browser, then come back here. Martha should show up under Voice.</li>
           <li>Some browsers don’t pass installed voices through to web pages. If it doesn’t appear, try a different browser on the same device.</li>
           <li>No voice? The app still works. Listening cards show the word instead, and the quiz skips listening questions.</li>
         </ul>` : ''}`}
         <div class="set"><div class="lbl"><b>Play audio automatically</b><span>When a card appears and when you flip it.</span></div>
           <label class="switch"><input type="checkbox" id="autoplay"${st.autoplay ? ' checked' : ''}><span></span><b class="vh">Play audio automatically</b></label></div>
-        <div class="set"><label class="lbl" for="voice"><b>Voice</b><span>${TTS.voices.length ? plural(TTS.voices.length, 'Greenlandic voice') + ' on this device.' : 'None available.'}</span></label>
-          <select id="voice"${TTS.voices.length ? '' : ' disabled'}>${voiceOpts}</select></div>
+        ${HAS_CLIPS ? '' : `<div class="set"><label class="lbl" for="voice"><b>Voice</b><span>${TTS.voices.length ? plural(TTS.voices.length, 'Greenlandic voice') + ' on this device.' : 'None available.'}</span></label>
+          <select id="voice"${TTS.voices.length ? '' : ' disabled'}>${voiceOpts}</select></div>`}
         <div class="set"><label class="lbl" for="rate"><b>Speed</b><span id="rate-v">${Math.round(st.rate * 100)}% of normal</span></label>
           <input id="rate" type="range" min="0.6" max="1.2" step="0.05" value="${esc(st.rate)}"></div>
         <div class="set"><div class="lbl"><b>Test it</b><span>Plays “Aluu, kalaallisut ilinniarpunga” (hi, I’m learning Greenlandic).</span></div>
@@ -968,6 +992,7 @@
         <p>This is a small, hand-picked core of ${N} words and phrases, not a frequency list. Greenlandic builds long words out of a root plus endings, so a “top 1000 words” list doesn’t really work. Instead you get greetings and survival phrases, question words, numbers and time, people, food, nature and places, everyday verbs, and the most useful endings (have, not, want, can, will, in, to, from, my), so you can start taking long words apart.</p>
         <p>It’s West Greenlandic (Kalaallisut), the official language, in the standard spelling. Verb cards show the “I” form (nerivunga, I eat), and the note shows how the ending changes for “you” and “he/she”.</p>
         <p>Be warned: this list was put together without a native speaker checking it, so some examples may be off. If you have access to a Greenlandic speaker, run things past them.</p>
+        <p>Audio: recordings made with Martha, the Greenlandic text-to-speech voice from Oqaasileriffik, Greenland’s language secretariat (oqaasileriffik.gl). It’s a synthetic voice, so the rhythm can sound a bit mechanical, but the sounds are right.</p>
         <p class="fineprint">Hover over (or tap) a word in an example sentence to see what it means. Keyboard: Space flips and grades Good, D is don’t know, 1 to 4 grade, R replays the word, E plays the example, H shows a hint. Fonts: Gentium Book Plus and Andika by SIL International, under the SIL Open Font License.</p>
       </section>`;
     drawAll($('#view-settings'));

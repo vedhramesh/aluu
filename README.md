@@ -10,7 +10,7 @@ Flashcards for about 280 core words, phrases and word-endings of West Greenlandi
 
 ## Audio
 
-No phone or browser comes with a Greenlandic voice. The app uses Martha, the free Greenlandic voice from Greenland's language secretariat (atuffat.gl), if it's installed on the device. Without it the app still works: listening cards show the word, and the quiz skips listening questions.
+Built in. Every word, example and note form was recorded with Martha, the Greenlandic text-to-speech voice from Oqaasileriffik, Greenland's language secretariat (https://oqaasileriffik.gl/en/langtech/martha/), and the clips live in `audio/`. Works on any device with nothing to install. If a clip is ever missing, the app falls back to a Greenlandic voice installed on the device, if there is one.
 
 ## Caveat
 
